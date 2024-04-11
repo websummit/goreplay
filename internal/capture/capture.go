@@ -337,7 +337,7 @@ func parseK8sSelector(addr string) (string, string, string) {
 	sectionsSize := len(sections)
 
 	if sectionsSize > 3 {
-		selectorValue = strings.Join(sections[sectionsSize-2:], "/")
+		selectorValue = strings.Join(sections[2:], "/")
 	}
 
 	labelSelector := ""
