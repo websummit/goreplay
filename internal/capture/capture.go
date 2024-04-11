@@ -303,6 +303,23 @@ func k8sIPs(addr string) []string {
 		panic(err.Error())
 	}
 
+	namespace, labelSelector, fieldSelector := parseK8sSelector(addr)
+
+	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var podIPs []string
+	for _, pod := range pods.Items {
+		for _, podIP := range pod.Status.PodIPs {
+			podIPs = append(podIPs, podIP.IP)
+		}
+	}
+	return podIPs
+}
+
+func parseK8sSelector(addr string) (string, string, string) {
 	sections := strings.Split(addr, "/")
 
 	if len(sections) < 2 {
@@ -316,6 +333,12 @@ func k8sIPs(addr string) []string {
 	}
 
 	namespace, selectorType, selectorValue := sections[0], sections[1], sections[2]
+
+	sectionsSize := len(sections)
+
+	if sectionsSize > 3 {
+		selectorValue = strings.Join(sections[sectionsSize-2:], "/")
+	}
 
 	labelSelector := ""
 	fieldSelector := ""
@@ -333,18 +356,7 @@ func k8sIPs(addr string) []string {
 		fieldSelector = selectorValue
 	}
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var podIPs []string
-	for _, pod := range pods.Items {
-		for _, podIP := range pod.Status.PodIPs {
-			podIPs = append(podIPs, podIP.IP)
-		}
-	}
-	return podIPs
+	return namespace, labelSelector, fieldSelector
 }
 
 // Filter returns automatic filter applied by goreplay
